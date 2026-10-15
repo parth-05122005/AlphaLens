@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthPage from './pages/AuthPage'
+import Dashboard from './pages/Dashboard'
+import HoldingDetail from './pages/HoldingDetail'
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
@@ -14,7 +16,8 @@ export default function App() {
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route index element={<Placeholder title="Dashboard" />} />
+          <Route index element={<Dashboard />} />
+          <Route path="holdings/:id" element={<HoldingDetail />} />
           <Route path="ask" element={<Placeholder title="Ask AlphaLens" />} />
           <Route path="agents" element={<Placeholder title="Agents" />} />
           <Route path="documents" element={<Placeholder title="Documents" />} />

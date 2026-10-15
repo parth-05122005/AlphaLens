@@ -74,7 +74,7 @@ export default function Layout() {
             </button>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
+        <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-8">
           <Outlet />
         </main>
       </div>

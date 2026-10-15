@@ -2,6 +2,7 @@
 
 from .settings import *  # noqa: F401,F403
 
+SECRET_KEY = "test-secret-key-that-is-long-enough-for-hs256-signing"
 DEBUG = False
 SECURE_SSL_REDIRECT = False
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
@@ -15,6 +16,7 @@ CACHES = {
 
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_STORE_EAGER_RESULT = True  # so /api/tasks/<id>/ reports SUCCESS in eager mode
 CELERY_BROKER_URL = "memory://"
 CELERY_RESULT_BACKEND = "cache+memory://"
 
