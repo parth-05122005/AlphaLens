@@ -65,3 +65,25 @@ class Chunk(models.Model):
                 opclasses=["vector_cosine_ops"],
             )
         ]
+
+
+class QueryLog(models.Model):
+    """Every /ask/ call. Doubles as the semantic cache and the source of AI stats."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="query_logs")
+    question = models.TextField()
+    question_embedding = VectorField(dimensions=settings.EMBEDDING_DIM)
+    # Sorted holding filter the question was asked with; cache hits must match it exactly.
+    holding_ids = models.JSONField(default=list, blank=True)
+    answer = models.TextField()
+    citations = models.JSONField(default=list, blank=True)
+    cache_hit = models.BooleanField(default=False)
+    latency_ms = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "created_at"])]
+
+    def __str__(self):
+        return self.question[:80]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Document
+from .models import Document, QueryLog
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -23,4 +23,16 @@ class DocumentSerializer(serializers.ModelSerializer):
 class DocumentDetailSerializer(DocumentSerializer):
     class Meta(DocumentSerializer.Meta):
         fields = [*DocumentSerializer.Meta.fields, "content"]
+        read_only_fields = fields
+
+
+class AskSerializer(serializers.Serializer):
+    question = serializers.CharField(min_length=3, max_length=500, trim_whitespace=True)
+    holding_ids = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
+
+
+class QueryLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QueryLog
+        fields = ["id", "question", "answer", "citations", "holding_ids", "cache_hit", "latency_ms", "created_at"]
         read_only_fields = fields

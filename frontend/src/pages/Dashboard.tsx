@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { errorMessage } from '../api/client'
 import { getSummary, refreshPrices } from '../api/portfolio'
 import AddHoldingModal from '../components/AddHoldingModal'
+import AiStatsCard from '../components/AiStatsCard'
 import { SentimentBadge } from '../components/badges'
 import SectorPie from '../components/SectorPie'
 import { useToast } from '../components/Toast'
@@ -156,6 +157,10 @@ export default function Dashboard() {
             <EmptyState title="Nothing to show yet" />
           )}
         </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <AiStatsCard />
       </div>
 
       {adding && <AddHoldingModal onClose={() => setAdding(false)} />}

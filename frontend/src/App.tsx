@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import Ask from './pages/Ask'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
@@ -19,7 +20,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="holdings/:id" element={<HoldingDetail />} />
-          <Route path="ask" element={<Placeholder title="Ask AlphaLens" />} />
+          <Route path="ask" element={<Ask />} />
           <Route path="agents" element={<Placeholder title="Agents" />} />
           <Route path="documents" element={<Documents />} />
         </Route>

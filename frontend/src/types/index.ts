@@ -114,3 +114,36 @@ export interface DocumentFilters {
   source_type?: SourceType
   status?: DocumentStatus
 }
+
+export interface Citation {
+  n: number
+  document_id: number
+  title: string
+  url: string | null
+  source_type: SourceType
+  published_at: string | null
+  snippet: string
+}
+
+export interface AskResponse {
+  answer: string
+  citations: Citation[]
+  cache_hit: boolean
+  latency_ms: number
+}
+
+export interface QueryLogEntry extends AskResponse {
+  id: number
+  question: string
+  holding_ids: number[]
+  created_at: string
+}
+
+export interface AiStats {
+  total_queries: number
+  cache_hit_rate: number
+  avg_latency_ms_cached: number | null
+  avg_latency_ms_uncached: number | null
+  documents_count: number
+  chunks_count: number
+}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Chunk, Document
+from .models import Chunk, Document, QueryLog
 
 
 @admin.register(Document)
@@ -14,3 +14,10 @@ class DocumentAdmin(admin.ModelAdmin):
 class ChunkAdmin(admin.ModelAdmin):
     list_display = ("document", "index")
     exclude = ("embedding",)
+
+
+@admin.register(QueryLog)
+class QueryLogAdmin(admin.ModelAdmin):
+    list_display = ("question", "user", "cache_hit", "latency_ms", "created_at")
+    list_filter = ("cache_hit",)
+    exclude = ("question_embedding",)

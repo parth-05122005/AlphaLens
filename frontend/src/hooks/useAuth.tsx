@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import * as authApi from '../api/auth'
 import { LOGOUT_EVENT, tokens } from '../api/client'
 import type { User } from '../types'
@@ -27,11 +28,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!tokens.access) return
-    authApi
-      .fetchMe()
-      .then(setUser)
-      .catch(() => tokens.clear())
-      .finally(() => setLoading(false))
+    let cancelled = false
+    // Only a rejected token ends the session; a sleeping or restarting server is retried.
+    async function restore(attempt = 1): Promise<void> {
+      try {
+        const me = await authApi.fetchMe()
+        if (!cancelled) setUser(me)
+      } catch (err) {
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined
+        if (status === undefined && attempt < 4 && !cancelled) {
+          await new Promise((r) => setTimeout(r, 2000 * attempt))
+          return restore(attempt + 1)
+        }
+        if (status === 401) tokens.clear()
+      }
+    }
+    restore().finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
