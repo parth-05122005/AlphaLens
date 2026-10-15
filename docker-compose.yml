@@ -21,7 +21,7 @@ services:
       POSTGRES_PASSWORD: alphalens
       POSTGRES_DB: alphalens
     ports:
-      - "5433:5432"  # host 5433 avoids clashing with a locally installed Postgres
+      - "${DB_HOST_PORT:-5433}:5432"  # host 5433 avoids clashing with a locally installed Postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +33,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"  # override if another stack already holds 6379
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
