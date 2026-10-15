@@ -33,6 +33,41 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * Render's free tier sleeps when idle, so the first request can take 30s+.
+ * If the first request is still pending after 5s we announce it so the UI can say so.
+ */
+export const WAKING_EVENT = 'alphalens:waking'
+let firstRequestSettled = false
+let wakingTimer: ReturnType<typeof setTimeout> | null = null
+
+function settleFirstRequest() {
+  if (firstRequestSettled) return
+  firstRequestSettled = true
+  if (wakingTimer) clearTimeout(wakingTimer)
+  window.dispatchEvent(new CustomEvent(WAKING_EVENT, { detail: false }))
+}
+
+api.interceptors.request.use((config) => {
+  if (!firstRequestSettled && !wakingTimer) {
+    wakingTimer = setTimeout(() => {
+      if (!firstRequestSettled) window.dispatchEvent(new CustomEvent(WAKING_EVENT, { detail: true }))
+    }, 5000)
+  }
+  return config
+})
+
+api.interceptors.response.use(
+  (response) => {
+    settleFirstRequest()
+    return response
+  },
+  (error: AxiosError) => {
+    if (error.response) settleFirstRequest()
+    throw error
+  },
+)
+
 // Share one refresh call between all requests that hit a 401 at the same time.
 let refreshing: Promise<string> | null = null
 

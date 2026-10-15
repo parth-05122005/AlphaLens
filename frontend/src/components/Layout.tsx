@@ -64,7 +64,8 @@ export default function Layout() {
           </button>
           <div className="ml-auto flex items-center gap-3">
             <span className="text-sm text-slate-600">
-              Signed in as <span className="font-medium text-slate-900">{user?.username}</span>
+              <span className="hidden sm:inline">Signed in as </span>
+              <span className="font-medium text-slate-900">{user?.username}</span>
             </span>
             <button
               onClick={logout}

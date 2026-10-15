@@ -143,3 +143,25 @@ def test_price_history_is_cached(api, user, make_holding, monkeypatch):
 
 def test_requires_auth():
     assert APIClient().get("/api/holdings/").status_code == 401
+
+
+def test_seed_demo_is_idempotent(mock_market, mock_feed):
+    from django.contrib.auth import get_user_model
+    from django.core.management import call_command
+
+    from agents.models import Agent
+
+    mock_market.prices = {"TATAMOTORS.NS": None}  # delisted after the demerger
+    mock_feed.entries = [
+        {"title": "Markets rally", "link": "https://news.example.com/rally", "summary": "Stocks rose."}
+    ]
+
+    call_command("seed_demo")
+    call_command("seed_demo")
+
+    demo = get_user_model().objects.get(username="demo")
+    assert demo.check_password("demo12345")
+    symbols = list(Holding.objects.filter(user=demo).values_list("symbol", flat=True))
+    assert sorted(symbols) == sorted(["INFY.NS", "TCS.NS", "HDFCBANK.NS", "RELIANCE.NS", "TMPV.NS"])
+    assert Agent.objects.filter(user=demo, schedule="daily").count() == 1
+    assert all(h.last_price is not None for h in Holding.objects.filter(user=demo))
