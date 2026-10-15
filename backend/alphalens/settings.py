@@ -1,6 +1,7 @@
 """Django settings for AlphaLens. Everything configurable comes from env vars."""
 
 import os
+import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -104,6 +105,10 @@ if not DEBUG:
     SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "86400"))
+
+# HSTS includeSubDomains/preload aren't ours to set on a shared onrender.com subdomain.
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 
 # --- CORS ---
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
@@ -139,6 +144,9 @@ SIMPLE_JWT = {
 # --- Celery ---
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+if REDIS_URL.startswith("rediss://"):  # TLS Redis (e.g. Upstash): Celery needs the cert policy spelled out
+    CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
+    CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
 CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1

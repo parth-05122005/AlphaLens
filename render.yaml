@@ -1,0 +1,88 @@
+# Render Blueprint: API web service + Postgres + Key Value (Redis), all on free plans.
+# Deploy with: Render dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: alphalens-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # your Vercel URL, e.g. https://alphalens.vercel.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alphalens-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: alphalens-redis
+          property: connectionString # internal URL
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_CHAT_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EMBED_MODEL
+        value: gemini-embedding-001
+      - key: EMBEDDING_DIM
+        value: "768"
+      - key: SEMANTIC_CACHE_THRESHOLD
+        value: "0.92"
+      - key: SEMANTIC_CACHE_TTL_HOURS
+        value: "24"
+      - key: ASK_RATE_LIMIT
+        value: 30/hour
+      # Free plan: run the Celery worker + beat inside the web service (see start.sh).
+      - key: RUN_WORKER_IN_WEB
+        value: "true"
+
+  - type: keyvalue
+    name: alphalens-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction # Celery's broker must not lose queued tasks
+    ipAllowList: [] # internal connections only
+
+  # On a paid plan, set RUN_WORKER_IN_WEB=false on the web service and enable these
+  # for a proper separate worker and a single beat scheduler.
+  #
+  # - type: worker
+  #   name: alphalens-worker
+  #   runtime: python
+  #   plan: starter
+  #   region: singapore
+  #   rootDir: backend
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: celery -A alphalens worker -l info --concurrency=2
+  #   envVars:
+  #     - fromGroup: alphalens-shared   # or repeat the web service's env vars
+  #
+  # - type: worker
+  #   name: alphalens-beat
+  #   runtime: python
+  #   plan: starter
+  #   region: singapore
+  #   rootDir: backend
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: celery -A alphalens beat -l info --schedule /tmp/celerybeat-schedule
+  #   envVars:
+  #     - fromGroup: alphalens-shared
+
+databases:
+  - name: alphalens-db
+    plan: free
+    region: singapore
+    databaseName: alphalens
+    user: alphalens
