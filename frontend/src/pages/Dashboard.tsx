@@ -5,6 +5,7 @@ import { errorMessage } from '../api/client'
 import { getSummary, refreshPrices } from '../api/portfolio'
 import AddHoldingModal from '../components/AddHoldingModal'
 import AiStatsCard from '../components/AiStatsCard'
+import AlertsPanel from '../components/AlertsPanel'
 import { SentimentBadge } from '../components/badges'
 import SectorPie from '../components/SectorPie'
 import { useToast } from '../components/Toast'
@@ -160,6 +161,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <AlertsPanel />
+        </div>
         <AiStatsCard />
       </div>
 

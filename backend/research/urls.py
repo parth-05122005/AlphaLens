@@ -10,5 +10,6 @@ urlpatterns = [
     path("ask/", views.ask, name="ask"),
     path("ask/history/", views.AskHistoryView.as_view(), name="ask-history"),
     path("stats/", views.stats, name="stats"),
+    path("alerts/", views.alerts, name="alerts"),
     *router.urls,
 ]

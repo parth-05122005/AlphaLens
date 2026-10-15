@@ -16,6 +16,7 @@ from core.llm import LLMError
 from core.retry import NETWORK_ERRORS
 from portfolio.models import Holding
 
+from .alerts import get_alerts
 from .models import Chunk, Document, QueryLog
 from .rag import answer_question
 from .serializers import AskSerializer, DocumentDetailSerializer, DocumentSerializer, QueryLogSerializer
@@ -140,3 +141,8 @@ def stats(request):
             "chunks_count": Chunk.objects.filter(document__user=request.user).count(),
         }
     )
+
+
+@api_view(["GET"])
+def alerts(request):
+    return Response(get_alerts(request.user))

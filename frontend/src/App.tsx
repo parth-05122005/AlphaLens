@@ -1,15 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import AgentDetail from './pages/AgentDetail'
+import Agents from './pages/Agents'
 import Ask from './pages/Ask'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
 import HoldingDetail from './pages/HoldingDetail'
-
-function Placeholder({ title }: { title: string }) {
-  return <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-}
 
 export default function App() {
   return (
@@ -21,7 +19,8 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="holdings/:id" element={<HoldingDetail />} />
           <Route path="ask" element={<Ask />} />
-          <Route path="agents" element={<Placeholder title="Agents" />} />
+          <Route path="agents" element={<Agents />} />
+          <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="documents" element={<Documents />} />
         </Route>
       </Route>

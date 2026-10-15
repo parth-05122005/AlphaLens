@@ -147,3 +147,60 @@ export interface AiStats {
   documents_count: number
   chunks_count: number
 }
+
+export interface AlertHeadline {
+  document_id: number
+  title: string
+  url: string | null
+  published_at: string | null
+  sentiment_score: number
+}
+
+export interface RiskAlert {
+  holding_id: number
+  symbol: string
+  name: string
+  average_sentiment: number
+  reason: string
+  headlines: AlertHeadline[]
+}
+
+export type AgentSchedule = 'manual' | 'daily'
+export type RunStatus = 'queued' | 'running' | 'success' | 'failed'
+
+export interface AgentRunSummary {
+  id: number
+  trigger: 'manual' | 'scheduled'
+  status: RunStatus
+  created_at: string
+  finished_at: string | null
+}
+
+export interface Agent {
+  id: number
+  name: string
+  instruction: string
+  holdings: number[]
+  schedule: AgentSchedule
+  is_active: boolean
+  created_at: string
+  last_run: AgentRunSummary | null
+}
+
+export interface AgentInput {
+  name: string
+  instruction: string
+  holdings: number[]
+  schedule: AgentSchedule
+  is_active: boolean
+}
+
+export interface AgentRun extends AgentRunSummary {
+  agent: number
+  agent_name: string
+  task_id: string | null
+  output: string
+  citations: Citation[]
+  error: string | null
+  started_at: string | null
+}
