@@ -95,7 +95,7 @@ npm run dev                               # http://localhost:5173
 - Django admin: create a user with `docker compose exec backend python manage.py createsuperuser`, then http://localhost:8000/admin/
 - Trigger the daily agents now instead of waiting for 08:00: `docker compose exec backend python manage.py run_agents`
 
-The Docker Postgres is published on host port **5433** so it doesn't clash with a locally installed Postgres. Inside Compose the services talk to `db:5432`.
+The Docker Postgres is published on host port **5433** so it doesn't clash with a locally installed Postgres. Inside Compose the services talk to `db:5432`. If another stack already holds 5433 or 6379 on the host, set `DB_HOST_PORT` / `REDIS_HOST_PORT` (e.g. `DB_HOST_PORT=5434 REDIS_HOST_PORT=6380 docker compose up --build`).
 
 ### Environment variables
 
