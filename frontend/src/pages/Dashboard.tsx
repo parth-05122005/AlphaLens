@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { errorMessage } from '../api/client'
 import { getSummary, refreshPrices } from '../api/portfolio'
 import AddHoldingModal from '../components/AddHoldingModal'
+import { SentimentBadge } from '../components/badges'
 import SectorPie from '../components/SectorPie'
 import { useToast } from '../components/Toast'
 import { Button, Card, CardTitle, EmptyState, Skeleton } from '../components/ui'
@@ -103,7 +104,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-y border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase">
                     <th className="px-5 py-2.5">Symbol</th>
@@ -111,7 +112,8 @@ export default function Dashboard() {
                     <th className="px-3 py-2.5 text-right">Avg price</th>
                     <th className="px-3 py-2.5 text-right">Last price</th>
                     <th className="px-3 py-2.5 text-right">Value</th>
-                    <th className="px-5 py-2.5 text-right">P&L</th>
+                    <th className="px-3 py-2.5 text-right">P&L</th>
+                    <th className="px-5 py-2.5">News</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,9 +131,12 @@ export default function Dashboard() {
                       <td className="px-3 py-3 text-right tabular-nums">{formatINR(h.avg_buy_price)}</td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatINR(h.last_price)}</td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatINR(h.value)}</td>
-                      <td className={`px-5 py-3 text-right tabular-nums ${pnlClass(h.pnl)}`}>
+                      <td className={`px-3 py-3 text-right tabular-nums ${pnlClass(h.pnl)}`}>
                         <div>{formatSignedINR(h.pnl)}</div>
                         <div className="text-xs">{formatPct(h.pnl_pct)}</div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <SentimentBadge label={h.sentiment_label} />
                       </td>
                     </tr>
                   ))}

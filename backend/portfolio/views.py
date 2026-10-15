@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -6,6 +8,14 @@ from .models import Holding
 from .serializers import HoldingSerializer
 from .services import HISTORY_PERIODS, enrich_holding, get_portfolio_summary, get_price_history, invalidate_summary
 from .tasks import refresh_prices_task
+
+logger = logging.getLogger(__name__)
+
+
+def enqueue_news_refresh(holding_id):
+    from research.tasks import refresh_news_for_holding_task  # research depends on portfolio, not vice versa
+
+    return refresh_news_for_holding_task.delay(holding_id)
 
 
 class HoldingViewSet(viewsets.ModelViewSet):
@@ -20,6 +30,10 @@ class HoldingViewSet(viewsets.ModelViewSet):
         holding.save()
         serializer.instance = holding
         invalidate_summary(self.request.user.id)
+        try:
+            enqueue_news_refresh(holding.id)
+        except Exception:
+            logger.warning("Could not enqueue news refresh for %s", holding.symbol, exc_info=True)
 
     def perform_update(self, serializer):
         serializer.save()
@@ -32,6 +46,12 @@ class HoldingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="refresh-prices")
     def refresh_prices(self, request):
         result = refresh_prices_task.delay(request.user.id)
+        return Response({"task_id": result.id}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["post"], url_path="refresh-news")
+    def refresh_news(self, request, pk=None):
+        holding = self.get_object()
+        result = enqueue_news_refresh(holding.id)
         return Response({"task_id": result.id}, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["get"])

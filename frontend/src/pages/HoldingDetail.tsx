@@ -1,12 +1,17 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { errorMessage } from '../api/client'
 import { deleteHolding, getHolding, getPriceHistory } from '../api/portfolio'
+import { deleteDocument, refreshNews } from '../api/research'
+import { SentimentBadge, StatusBadge } from '../components/badges'
+import PdfUpload from '../components/PdfUpload'
 import PriceChart from '../components/PriceChart'
 import { useToast } from '../components/Toast'
-import { Button, Card, CardTitle, EmptyState, Skeleton } from '../components/ui'
-import { formatINR, formatNumber, formatPct, formatSignedINR, pnlClass, timeAgo } from '../lib/format'
+import { Button, Card, CardTitle, EmptyState, Skeleton, inputClass } from '../components/ui'
+import { useDocuments } from '../hooks/useDocuments'
+import { useTaskStatus } from '../hooks/useTaskStatus'
+import { formatDate, formatINR, formatNumber, formatPct, formatSignedINR, pnlClass, timeAgo } from '../lib/format'
 import type { Period } from '../types'
 
 const PERIODS: { value: Period; label: string }[] = [
@@ -21,6 +26,8 @@ export default function HoldingDetail() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [period, setPeriod] = useState<Period>('1mo')
+  const [newsTask, setNewsTask] = useState<string | null>(null)
+  const [question, setQuestion] = useState('')
 
   const holding = useQuery({ queryKey: ['holdings', id], queryFn: () => getHolding(id) })
   const history = useQuery({
@@ -28,6 +35,40 @@ export default function HoldingDetail() {
     queryFn: () => getPriceHistory(id, period),
     enabled: holding.isSuccess,
   })
+
+  const news = useDocuments({ holding: id, source_type: 'news' })
+  const pdfs = useDocuments({ holding: id, source_type: 'pdf' })
+
+  const startNewsRefresh = useMutation({
+    mutationFn: () => refreshNews(id),
+    onSuccess: ({ task_id }) => setNewsTask(task_id),
+    onError: (err) => {
+      toast(errorMessage(err, 'News refresh failed'), 'error')
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+  })
+  const newsStatus = useTaskStatus(newsTask, {
+    invalidate: [['documents'], ['holdings', id], ['summary'], ['alerts']],
+    successMessage: 'News refreshed',
+    failureMessage: 'News refresh failed',
+    onSettled: () => setNewsTask(null),
+  })
+
+  const removeDoc = useMutation({
+    mutationFn: deleteDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      toast('Document deleted', 'success')
+    },
+    onError: (err) => toast(errorMessage(err), 'error'),
+  })
+
+  function ask(e: FormEvent) {
+    e.preventDefault()
+    const params = new URLSearchParams({ holding: String(id) })
+    if (question.trim()) params.set('q', question.trim())
+    navigate(`/ask?${params}`)
+  }
 
   const remove = useMutation({
     mutationFn: () => deleteHolding(id),
@@ -135,6 +176,106 @@ export default function HoldingDetail() {
           <EmptyState title="No price data for this period" />
         )}
       </Card>
+
+      <Card>
+        <form onSubmit={ask} className="flex flex-col gap-2 sm:flex-row">
+          <input
+            className={inputClass}
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={`Ask about ${h.symbol.replace('.NS', '')}, e.g. "What did management say about guidance?"`}
+          />
+          <Button type="submit" className="shrink-0">
+            Ask AlphaLens
+          </Button>
+        </form>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-5">
+        <Card className="xl:col-span-3">
+          <CardTitle
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => startNewsRefresh.mutate()}
+                loading={startNewsRefresh.isPending || newsStatus.running}
+              >
+                {newsStatus.running ? 'Fetching…' : 'Refresh news'}
+              </Button>
+            }
+          >
+            News
+          </CardTitle>
+          <p className="-mt-2 mb-3 text-xs text-slate-500">
+            Last refreshed {timeAgo(h.news_refreshed_at)} · auto-refreshes every 3 hours
+          </p>
+          {news.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
+            </div>
+          ) : news.data?.results.length ? (
+            <ul className="divide-y divide-slate-100">
+              {news.data.results.map((d) => (
+                <li key={d.id} className="flex items-start justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <a
+                      href={d.url ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-slate-800 hover:text-brand-700 hover:underline"
+                    >
+                      {d.title}
+                    </a>
+                    <p className="mt-0.5 text-xs text-slate-500">{formatDate(d.published_at ?? d.created_at)}</p>
+                  </div>
+                  <div className="shrink-0">
+                    {d.status === 'ready' ? (
+                      <SentimentBadge label={d.sentiment_label} />
+                    ) : (
+                      <StatusBadge status={d.status} error={d.error} />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="No news yet">
+              {newsStatus.running ? 'Fetching headlines…' : 'Click "Refresh news" to pull the latest headlines.'}
+            </EmptyState>
+          )}
+        </Card>
+
+        <Card className="xl:col-span-2">
+          <CardTitle>Documents</CardTitle>
+          <PdfUpload holdingId={id} />
+          {pdfs.data?.results.length ? (
+            <ul className="mt-4 divide-y divide-slate-100">
+              {pdfs.data.results.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-800">{d.title}</p>
+                    <p className="text-xs text-slate-500">Uploaded {timeAgo(d.created_at)}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StatusBadge status={d.status} error={d.error} />
+                    <button
+                      onClick={() => window.confirm(`Delete "${d.title}"?`) && removeDoc.mutate(d.id)}
+                      className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                      aria-label={`Delete ${d.title}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            !pdfs.isLoading && <p className="mt-3 text-center text-xs text-slate-500">No reports uploaded for this stock yet.</p>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }

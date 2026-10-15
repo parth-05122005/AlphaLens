@@ -63,6 +63,8 @@ export interface SummaryHolding {
   avg_buy_price: number
   last_price: number | null
   last_price_at: string | null
+  sentiment: number | null
+  sentiment_label: SentimentLabel | null
   invested: number
   value: number
   pnl: number
@@ -85,4 +87,30 @@ export interface PriceHistory {
   symbol: string
   period: Period
   points: { date: string; close: number }[]
+}
+
+export type SentimentLabel = 'positive' | 'neutral' | 'negative'
+export type DocumentStatus = 'pending' | 'processing' | 'ready' | 'failed'
+export type SourceType = 'news' | 'pdf'
+
+export interface Document {
+  id: number
+  holding: number | null
+  holding_symbol: string | null
+  source_type: SourceType
+  title: string
+  url: string | null
+  published_at: string | null
+  status: DocumentStatus
+  error: string | null
+  sentiment_score: number | null
+  sentiment_label: SentimentLabel | null
+  created_at: string
+  snippet: string
+}
+
+export interface DocumentFilters {
+  holding?: number
+  source_type?: SourceType
+  status?: DocumentStatus
 }

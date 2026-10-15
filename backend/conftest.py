@@ -40,6 +40,81 @@ def mock_market(monkeypatch):
     return market
 
 
+def fake_vector(text: str) -> list[float]:
+    """Deterministic bag-of-words embedding: similar wording -> similar vector."""
+    import hashlib
+    import math
+    import re
+
+    from django.conf import settings
+
+    vec = [0.0] * settings.EMBEDDING_DIM
+    for word in re.findall(r"[a-z0-9]+", text.lower()):
+        vec[int(hashlib.md5(word.encode()).hexdigest(), 16) % len(vec)] += 1.0
+    norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+    return [v / norm for v in vec]
+
+
+@pytest.fixture(autouse=True)
+def mock_llm(monkeypatch):
+    """Tests never call Gemini. Override `generate_reply` / `json_reply` or the call lists as needed."""
+
+    class FakeLLM:
+        def __init__(self):
+            self.generate_calls = []
+            self.json_calls = []
+            self.embed_calls = 0
+            self.generate_reply = "Here is what the sources say [1]."
+            self.json_reply = None  # None -> neutral score for every id in the prompt
+
+        def embed(self, text, task_type="RETRIEVAL_QUERY"):
+            self.embed_calls += 1
+            return fake_vector(text)
+
+        def embed_many(self, texts, task_type="RETRIEVAL_DOCUMENT"):
+            self.embed_calls += 1
+            return [fake_vector(t) for t in texts]
+
+        def generate(self, system_prompt, user_prompt):
+            self.generate_calls.append((system_prompt, user_prompt))
+            if isinstance(self.generate_reply, Exception):
+                raise self.generate_reply
+            return self.generate_reply
+
+        def generate_json(self, system_prompt, user_prompt):
+            import re
+
+            self.json_calls.append((system_prompt, user_prompt))
+            if self.json_reply is not None:
+                return self.json_reply(user_prompt) if callable(self.json_reply) else self.json_reply
+            ids = re.findall(r"^(\d+):", user_prompt, flags=re.M)
+            return {"results": [{"id": int(i), "score": 0.0, "label": "neutral"} for i in ids]}
+
+    fake = FakeLLM()
+    for name in ("embed", "embed_many", "generate", "generate_json"):
+        monkeypatch.setattr(f"core.llm.{name}", getattr(fake, name))
+    return fake
+
+
+@pytest.fixture(autouse=True)
+def mock_feed(monkeypatch):
+    """Fake Google News RSS. Set `.entries` to control what fetch_news sees."""
+    import feedparser
+
+    class Feed:
+        def __init__(self):
+            self.entries = []
+            self.urls = []
+
+        def __call__(self, url):
+            self.urls.append(url)
+            return feedparser.FeedParserDict(entries=[feedparser.FeedParserDict(e) for e in self.entries])
+
+    feed = Feed()
+    monkeypatch.setattr("research.ingest._fetch_feed", feed)
+    return feed
+
+
 @pytest.fixture
 def user(db):
     return get_user_model().objects.create_user("alice", "alice@example.com", "password-123")

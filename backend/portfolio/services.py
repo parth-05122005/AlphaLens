@@ -2,10 +2,13 @@
 
 import logging
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal
 
 import yfinance as yf
+from django.apps import apps
 from django.core.cache import cache
+from django.db.models import Avg
 from django.utils import timezone
 
 from .models import Holding
@@ -121,6 +124,32 @@ def holding_metrics(h: Holding) -> dict:
     }
 
 
+def sentiment_label(score: float | None) -> str | None:
+    if score is None:
+        return None
+    if score >= 0.2:
+        return "positive"
+    if score <= -0.2:
+        return "negative"
+    return "neutral"
+
+
+def recent_sentiment(user, days: int = 7) -> dict[int, dict]:
+    """Average news sentiment per holding over the last `days` days."""
+    Document = apps.get_model("research", "Document")
+    since = timezone.now() - timedelta(days=days)
+    rows = (
+        Document.objects.filter(
+            user=user, source_type="news", holding__isnull=False, sentiment_score__isnull=False, created_at__gte=since
+        )
+        .values("holding_id")
+        .annotate(avg=Avg("sentiment_score"))
+    )
+    return {
+        r["holding_id"]: {"sentiment": round(r["avg"], 2), "sentiment_label": sentiment_label(r["avg"])} for r in rows
+    }
+
+
 def get_portfolio_summary(user) -> dict:
     key = summary_key(user.id)
     cached = cache.get(key)
@@ -128,6 +157,7 @@ def get_portfolio_summary(user) -> dict:
         return cached
 
     holdings = list(Holding.objects.filter(user=user))
+    sentiment = recent_sentiment(user)
     total_invested = Decimal("0")
     current_value = Decimal("0")
     by_sector: dict[str, Decimal] = defaultdict(Decimal)
@@ -147,6 +177,7 @@ def get_portfolio_summary(user) -> dict:
                 "avg_buy_price": float(h.avg_buy_price),
                 "last_price": float(h.last_price) if h.last_price is not None else None,
                 "last_price_at": h.last_price_at.isoformat() if h.last_price_at else None,
+                **sentiment.get(h.id, {"sentiment": None, "sentiment_label": None}),
                 **m,
             }
         )
