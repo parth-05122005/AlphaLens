@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -145,7 +146,21 @@ CELERY_TASK_TIME_LIMIT = 300
 CELERY_TASK_SOFT_TIME_LIMIT = 240
 CELERY_TASK_TRACK_STARTED = True
 CELERY_RESULT_EXPIRES = 60 * 60 * 24
-CELERY_BEAT_SCHEDULE = {}
+# Static schedule (no django-celery-beat). Times are Asia/Kolkata (CELERY_TIMEZONE).
+CELERY_BEAT_SCHEDULE = {
+    "refresh-prices-market-hours": {
+        "task": "portfolio.tasks.refresh_prices_task",
+        "schedule": crontab(minute="*/15", hour="9-15", day_of_week="mon-fri"),
+    },
+    "refresh-all-news": {
+        "task": "research.tasks.refresh_all_news_task",
+        "schedule": crontab(minute=0, hour="*/3"),
+    },
+    "run-daily-agents": {
+        "task": "agents.tasks.run_scheduled_agents_task",
+        "schedule": crontab(minute=0, hour=8),
+    },
+}
 
 # --- LLM / RAG ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

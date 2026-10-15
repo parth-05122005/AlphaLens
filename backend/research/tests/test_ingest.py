@@ -208,3 +208,24 @@ def test_documents_are_user_scoped(api, other_user, make_holding):
     assert api.get("/api/documents/").data["count"] == 0
     assert api.get(f"/api/documents/{doc.id}/").status_code == 404
     assert api.delete(f"/api/documents/{doc.id}/").status_code == 404
+
+
+def test_refresh_all_news_fans_out_one_task_per_holding(user, other_user, make_holding, mock_feed, monkeypatch):
+    holdings = [make_holding(user, "INFY.NS"), make_holding(user, "TCS.NS"), make_holding(other_user, "INFY.NS")]
+    mock_feed.entries = [news_entry(1)]
+    from research import tasks
+
+    called = []
+    original = tasks.refresh_news_for_holding
+
+    def spy(holding):
+        called.append(holding.id)
+        return original(holding)
+
+    monkeypatch.setattr(tasks, "refresh_news_for_holding", spy)
+
+    assert tasks.refresh_all_news_task.delay().get() == 3
+    assert sorted(called) == sorted(h.id for h in holdings)
+    # News is unique per (user, url): alice stores the shared headline once, bob gets his own copy.
+    assert Document.objects.filter(source_type="news", user=user).count() == 1
+    assert Document.objects.filter(source_type="news", user=other_user).count() == 1
