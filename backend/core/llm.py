@@ -1,6 +1,7 @@
 """The only module that talks to the LLM provider (Gemini). Swap the provider here.
 
-Retries are deliberately not done here: Celery tasks retry on NETWORK_ERRORS instead.
+Only Gemini's brief 503 "high demand" spikes are retried here, so a live /ask/ request
+survives them. Everything else is left to Celery tasks, which retry on NETWORK_ERRORS.
 """
 
 import json
@@ -28,7 +29,8 @@ def _client() -> genai.Client:
         api_key=settings.GEMINI_API_KEY,
         http_options=types.HttpOptions(
             timeout=settings.LLM_TIMEOUT_SECONDS * 1000,  # milliseconds
-            retry_options=types.HttpRetryOptions(attempts=1),
+            # 429 (quota) is not retried: waiting seconds won't bring a daily quota back.
+            retry_options=types.HttpRetryOptions(attempts=3, initial_delay=1.0, max_delay=4.0, http_status_codes=[503]),
         ),
     )
 
