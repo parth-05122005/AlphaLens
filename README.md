@@ -134,7 +134,7 @@ Covered: auth; holdings CRUD, user isolation, summary math and cache invalidatio
 1. Create a **Key Value** (Redis) instance and a **Postgres** database in the same region. The first migration runs `CREATE EXTENSION vector` for you.
 2. Create a **Web Service** from this repo with root directory `backend`, build command `./build.sh`, start command `./start.sh`, and health check path `/api/health/`. Or use the `render.yaml` blueprint.
 3. Set the env vars from the table above, with `DEBUG=False`, `DATABASE_URL` from Render Postgres, `REDIS_URL` from Key Value's **internal** URL, and `CORS_ALLOWED_ORIGINS` set to your Vercel URL.
-4. Once deployed, open the Render shell and run `python manage.py seed_demo` so the demo account works.
+4. Seed the demo account: the free plan has no Shell tab, so set `SEED_DEMO_ON_START=true` (the blueprint does this) and `start.sh` runs `seed_demo` in the background on boot. Once "Use demo account" works, set it to `false` so later wake-ups don't re-seed. On a paid plan you can run `python manage.py seed_demo` in the Shell instead.
 
 **Frontend → Vercel:** import the repo with root directory `frontend` and framework Vite, and set `VITE_API_URL=https://<your-render-app>.onrender.com/api`. `vercel.json` rewrites every route to `index.html` so deep links work.
 
