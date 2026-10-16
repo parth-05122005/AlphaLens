@@ -108,7 +108,7 @@ The Docker Postgres is published on host port **5433** so it doesn't clash with 
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Render's hostname is added automatically |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Frontend origin(s) |
 | `GEMINI_API_KEY` | (none) | Required for embeddings, answers and sentiment |
-| `GEMINI_CHAT_MODEL` | `gemini-2.5-flash` | Chat model (never hardcoded) |
+| `GEMINI_CHAT_MODEL` | `gemini-3.5-flash-lite` | Chat model (never hardcoded) |
 | `GEMINI_EMBED_MODEL` | `gemini-embedding-001` | Embedding model |
 | `EMBEDDING_DIM` | `768` | Requested output dimensionality; must match the vector columns |
 | `SEMANTIC_CACHE_THRESHOLD` | `0.92` | Cosine similarity needed for a cache hit |
@@ -155,7 +155,7 @@ Render background workers aren't free, so `start.sh` runs `celery worker -B` (wo
 ## Notes and deviations from the original plan
 
 - **Tata Motors**: the plan's example `TATAMOTORS.NS` stopped resolving on yfinance after the 2025 demerger. `seed_demo` tries candidates in order and uses `TMPV.NS` (Tata Motors Passenger Vehicles) instead.
-- **Model names**: kept the plan's defaults (`gemini-2.5-flash`, `gemini-embedding-001`). Both come only from env vars, so switching to a newer model needs no code change.
+- **Model names**: chat defaults to `gemini-3.5-flash-lite` (`gemini-2.5-flash` allows only 20 free requests a day and `gemini-2.5-flash-lite` is no longer served to new projects); embeddings use `gemini-embedding-001`. Both come only from env vars, so switching models needs no code change.
 - **`QueryLog.holding_ids`**: added so a cached answer is only reused for the same holding filter. Without it, an answer scoped to one stock could be replayed for a portfolio-wide question.
 - Answers with no citations (e.g. "no documents yet") are never served from the cache, so newly added documents are used immediately.
 - Gemini SDK retries are disabled (`HttpRetryOptions(attempts=1)`) because retries happen at the Celery task level, as the plan specifies.
