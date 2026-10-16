@@ -4,7 +4,7 @@
 
 > Portfolio/resume prototype. Built to show Django + DRF, React + TypeScript, PostgreSQL with pgvector, Redis, Celery workers + beat, Docker, CI and LLM integration working together end to end.
 
-**Live demo:** https://alphalens.vercel.app _(placeholder)_ · **API:** https://alphalens-api.onrender.com/api/health/ _(placeholder)_
+**Live demo:** https://alpha-lens-theta.vercel.app (log in with "Use demo account") · **API:** https://alphalens-api-o7z9.onrender.com/api/health/ (free tier: the first request after idle takes ~30-60 s while the server wakes)
 **Demo login:** `demo` / `demo12345` (or click **Use demo account**)
 
 ## Features
